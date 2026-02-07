@@ -54,7 +54,9 @@ function HomeLandingPage() {
   return (
     <div className="px-6 md:px-20 py-6 md:py-10">
       <div className="flex md:items-center justify-between gap-4">
-        <div className="text-2xl md:text-3xl font-medium">Your Portfolios</div>
+        <div className="text-2xl md:text-3xl font-bold md:font-medium">
+          Your Portfolios
+        </div>
         <div className="flex items-center w-fit gap-2 cursor-pointer px-2 md:px-4 py-1 md:py-2 bg-gray-900 text-white hover:bg-white hover:text-gray-900 border border-gray-900 transition-colors duration-200">
           <PlusIcon className="md:h-5 md:w-5 h-4 w-4" strokeWidth={2} />
           <span className="hidden md:block md:text-base">Create new</span>
@@ -66,7 +68,7 @@ function HomeLandingPage() {
             key={item.id}
             className="flex flex-col bg-white border border-gray-300 p-4 md:p-5"
           >
-            <div className="text-lg md:text-xl font-medium mb-0 md:mb-1 ">
+            <div className="text-lg md:text-xl font-bold md:font-medium mb-0 md:mb-1 ">
               {item.title}
             </div>
             <div className="flex-1 text-sm text-gray-800 mb-3 md:mb-4">
