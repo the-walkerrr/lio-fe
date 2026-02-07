@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
       >
         <Navbar />
         {/* Main content area - offset for sidebar on desktop, bottom padding for mobile nav */}
-        <main className="md:ml-64 pb-20 md:pb-0 min-h-screen">
+        <main className="md:ml-56 pb-20 md:pb-0 min-h-screen">
           {children}
         </main>
       </body>

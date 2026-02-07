@@ -1,14 +1,13 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, FileText, Search, Bookmark, Settings } from 'lucide-react';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, Search, Bookmark, Settings } from "lucide-react";
 
 const menuItems = [
-  { name: 'Home', href: '/', icon: Home },
-  { name: 'Portfolios', href: '/portfolios', icon: FileText },
-  { name: 'Search', href: '/search', icon: Search },
-  { name: 'Saved', href: '/saved', icon: Bookmark },
+  { name: "Home", href: "/", icon: Home },
+  { name: "Search", href: "/search", icon: Search },
+  { name: "Saved", href: "/saved", icon: Bookmark }
 ];
 
 export default function Navbar() {
@@ -20,31 +19,34 @@ export default function Navbar() {
     <Link
       href={href}
       className={`flex items-center gap-3 px-6 py-3 transition-colors duration-200 ${
-        isActive(href) 
-          ? 'bg-gray-200 text-gray-800' 
-          : 'text-gray-600 hover:bg-gray-100'
+        isActive(href)
+          ? "bg-gray-200 text-gray-800"
+          : "text-gray-600 hover:bg-gray-100"
       }`}
     >
       <Icon size={22} strokeWidth={1.5} />
-      <span className="font-normal">{name}</span>
+      <span>{name}</span>
     </Link>
   );
 
   // Mobile Bottom Link
-  const MobileLink = ({ href, icon: Icon }) => {
+  const MobileLink = ({ name, href, icon: Icon }) => {
     const active = isActive(href);
     return (
       <Link
         href={href}
-        className="flex flex-col items-center justify-center flex-1 transition-colors duration-200"
+        className="flex flex-col items-center justify-center flex-1 transition-colors duration-200 pb-3"
       >
-        <Icon 
-          size={20} 
-          strokeWidth={1.5} 
-          className={`h-full w-fit border-t-2 py-3 px-3 transition-all ${
-            active ? 'text-gray-800 border-gray-800' : 'text-gray-600 border-transparent'
-          }`} 
+        <Icon
+          size={22}
+          strokeWidth={1.5}
+          className={`h-full w-fit border-t-2 pt-3 px-3 pb-1 transition-all ${
+            active
+              ? "text-gray-800 border-gray-800"
+              : "text-gray-600 border-transparent"
+          }`}
         />
+        <span className="text-xs">{name}</span>
       </Link>
     );
   };
@@ -55,7 +57,9 @@ export default function Navbar() {
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-56 flex-col bg-gray-50 border-r border-gray-300">
         {/* Logo / Brand */}
         <div className="p-6">
-          <h1 className="text-4xl font-medium text-gray-800 tracking-tight">LIO</h1>
+          <h1 className="text-4xl font-medium text-gray-800 tracking-tight">
+            LIO
+          </h1>
           <p className="text-gray-600 text-sm">Portfolio Management</p>
         </div>
 
@@ -78,7 +82,7 @@ export default function Navbar() {
           {menuItems.map((item) => (
             <MobileLink key={item.name} {...item} />
           ))}
-          <MobileLink href="/settings" icon={Settings} />
+          <MobileLink href="/settings" icon={Settings} name="Settings" />
         </div>
       </nav>
     </>
