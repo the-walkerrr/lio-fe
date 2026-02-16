@@ -7,7 +7,7 @@ import { Home, Search, Bookmark, Settings } from "lucide-react";
 const menuItems = [
   { name: "Home", href: "/", icon: Home },
   { name: "Search", href: "/search", icon: Search },
-  { name: "Saved", href: "/saved", icon: Bookmark }
+  { name: "Saved", href: "/saved", icon: Bookmark },
 ];
 
 export default function Navbar() {
@@ -57,8 +57,9 @@ export default function Navbar() {
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-56 flex-col bg-gray-50 border-r border-gray-300">
         {/* Logo / Brand */}
         <div className="p-6">
-          <h1 className="text-4xl font-medium text-gray-800 tracking-tight">
-            LIO
+          <h1 className="text-4xl font-semibold text-gray-800 tracking-tight">
+            LIO<span className="text-gray-500 font-medium text-xl">.</span>
+            <span className="text-sm text-gray-400 font-medium">DEV</span>
           </h1>
           <p className="text-gray-600 text-sm">Portfolio Management</p>
         </div>
