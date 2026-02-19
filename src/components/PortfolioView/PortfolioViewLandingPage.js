@@ -51,7 +51,7 @@ export default function PortfolioViewLandingPage() {
             {/* Info */}
           </div>
           {/* RHS */}
-          <div className="flex flex-col flex-3/5 min-w-0 overflow-hidden">
+          <div className="flex flex-col flex-3/5 min-w-0">
             {/* Section Tabs */}
             <div></div>
             {/* Timeline */}
