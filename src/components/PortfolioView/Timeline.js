@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
+import dayjs from "dayjs";
 
 const MONTHS = [
   {
@@ -56,28 +57,85 @@ const MONTHS = [
 
 function Timeline() {
   const [zoom, setZoom] = useState(1);
-  const years = ["2024", "2025", "2026"];
 
   const timelineData = [
     {
       title: "NITC",
       description: "Computer Science Engineering",
-      startTime: 1590969600, // June 1, 2020
-      endTime: 1717113600, // May 31, 2024
+      startTime: 1607990400, // December 15, 2020
+      endTime: 1715299200, // May 10, 2024
     },
-    {
-      title: "Freelancing",
-      description: "Independent Software Development",
-      startTime: 1709251200, // March 1, 2024
-      endTime: 1735603200, // December 31, 2024
-    },
+    // {
+    //   title: "Freelancing",
+    //   description: "Independent Software Development",
+    //   startTime: 1709596800, // March 5, 2024
+    //   endTime: 1734912000, // December 23, 2024
+    // },
     {
       title: "AESL",
       description: "Software Engineer",
-      startTime: 1717200000, // June 1, 2024
-      endTime: 1738281600, // January 31, 2025 (present approximation)
+      startTime: 1723075200, // August 8, 2024
+      endTime: 1771545600, // February 20, 2026
     },
   ];
+
+  const minYear = Math.min(
+    ...timelineData.map((item) => dayjs(item.startTime * 1000).year()),
+  );
+  const maxYear = Math.max(
+    ...timelineData.map((item) => dayjs(item.endTime * 1000).year()),
+  );
+  const years = Array.from(
+    { length: maxYear - minYear + 1 },
+    (_, index) => minYear + index,
+  );
+
+  const coOrdinates = timelineData.map((item) => {
+    const start = dayjs(item.startTime * 1000);
+    const end = dayjs(item.endTime * 1000);
+
+    const startYear = start.year();
+    const startMonth = start.month() + 1;
+    const startDay = start.date();
+
+    const endYear = end.year();
+    const endMonth = end.month() + 1;
+    const endDay = end.date();
+
+    const startPostion =
+      (startYear - minYear) *
+        MONTHS.reduce((acc, month) => acc + month.days, 0) *
+        2 *
+        zoom +
+      (startYear - minYear) * 12 +
+      MONTHS.slice(0, startMonth - 1).reduce(
+        (acc, month) => acc + month.days,
+        0,
+      ) *
+        2 *
+        zoom +
+      startMonth +
+      startDay * 2 * zoom;
+    const endPostion =
+      (endYear - minYear) *
+        MONTHS.reduce((acc, month) => acc + month.days, 0) *
+        2 *
+        zoom +
+      (endYear - minYear) * 12 +
+      MONTHS.slice(0, endMonth - 1).reduce(
+        (acc, month) => acc + month.days,
+        0,
+      ) *
+        2 *
+        zoom +
+      endMonth +
+      endDay * 2 * zoom;
+
+    return {
+      startPostion,
+      endPostion,
+    };
+  });
 
   const handleZoom = (amount) => {
     // Max 2, Min 0.5
@@ -87,7 +145,7 @@ function Timeline() {
   return (
     <div className="flex flex-col gap-2">
       <div className="text-xl font-medium">Timeline</div>
-      <div className="overflow-x-auto flex no-scrollbar px-4">
+      <div className="relative overflow-x-auto flex no-scrollbar">
         {years.map((year, index) => (
           <div key={year} className="flex mt-4">
             <div
@@ -108,7 +166,7 @@ function Timeline() {
                     id={`${name}-${year}`}
                     className="relative flex flex-col items-center gap-2"
                     style={{
-                      // 2 for extra spacing between months
+                      // 2 * for extra spacing between months
                       marginRight: 2 * days * zoom,
                       transition: "margin-right 0.3s ease",
                     }}
@@ -133,6 +191,17 @@ function Timeline() {
               />
             )}
           </div>
+        ))}
+        {coOrdinates.map((coOrdinate, index) => (
+          <div
+            key={index}
+            className="absolute top-20 h-[100px] bg-gray-600"
+            style={{
+              left: `${coOrdinate.startPostion}px`,
+              width: `${coOrdinate.endPostion - coOrdinate.startPostion}px`,
+              transition: "all 0.3s ease",
+            }}
+          />
         ))}
       </div>
       <div className="flex gap-2">
