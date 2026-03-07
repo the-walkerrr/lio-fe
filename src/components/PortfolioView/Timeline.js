@@ -60,19 +60,19 @@ function Timeline() {
 
   const timelineData = [
     {
-      title: "NITC",
+      title: "NIT Calicut",
       description: "Computer Science Engineering",
       startTime: 1607990400, // December 15, 2020
       endTime: 1715299200, // May 10, 2024
     },
-    // {
-    //   title: "Freelancing",
-    //   description: "Independent Software Development",
-    //   startTime: 1709596800, // March 5, 2024
-    //   endTime: 1734912000, // December 23, 2024
-    // },
     {
-      title: "AESL",
+      title: "Freelancing",
+      description: "Independent Software Development",
+      startTime: 1709596800, // March 5, 2024
+      endTime: 1734912000, // December 23, 2024
+    },
+    {
+      title: "Aakash Educational Services Limited (AESL)",
       description: "Software Engineer",
       startTime: 1723075200, // August 8, 2024
       endTime: 1771545600, // February 20, 2026
@@ -156,7 +156,7 @@ function Timeline() {
               }}
             />
             <div className="relative flex flex-col gap-2 w-max">
-              <div className="text-center text-sm text-gray-500 font-medium">
+              <div className="pl-1 text-gray-500 font-medium sticky left-0 z-10 bg-gray-50 w-fit">
                 {year}
               </div>
               <div className="flex pt-2">
@@ -195,13 +195,26 @@ function Timeline() {
         {coOrdinates.map((coOrdinate, index) => (
           <div
             key={index}
-            className="absolute top-20 h-[100px] bg-gray-600"
+            className="absolute top-20 h-[100px] bg-gray-200 overflow-x-clip"
             style={{
               left: `${coOrdinate.startPostion}px`,
               width: `${coOrdinate.endPostion - coOrdinate.startPostion}px`,
               transition: "all 0.3s ease",
             }}
-          />
+          >
+            <div className="flex flex-col h-full sticky p-3 left-0 w-fit">
+              <div className="font-bold text-gray-700 truncate line-clamp-1">
+                {timelineData[index].title}
+              </div>
+              <div className="text-sm font-medium text-gray-500 truncate line-clamp-1">
+                {timelineData[index].description}
+              </div>
+              <div className="text-xs font-medium text-gray-500 mt-auto">
+                {dayjs(timelineData[index].startTime * 1000).format("MMM YYYY")}{" "}
+                - {dayjs(timelineData[index].endTime * 1000).format("MMM YYYY")}
+              </div>
+            </div>
+          </div>
         ))}
       </div>
       <div className="flex gap-2">
