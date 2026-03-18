@@ -1,132 +1,363 @@
 "use client";
 
-import { useState } from "react";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronsLeft,
+  Maximize,
+  Minimize,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import dayjs from "dayjs";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
-const MONTHS = [
-  {
-    name: "Jan",
-    days: 31,
-  },
-  {
-    name: "Feb",
-    days: 28,
-  },
-  {
-    name: "Mar",
-    days: 31,
-  },
-  {
-    name: "Apr",
-    days: 30,
-  },
-  {
-    name: "May",
-    days: 31,
-  },
-  {
-    name: "Jun",
-    days: 30,
-  },
-  {
-    name: "Jul",
-    days: 31,
-  },
-  {
-    name: "Aug",
-    days: 31,
-  },
-  {
-    name: "Sep",
-    days: 30,
-  },
-  {
-    name: "Oct",
-    days: 31,
-  },
-  {
-    name: "Nov",
-    days: 30,
-  },
-  {
-    name: "Dec",
-    days: 31,
-  },
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
-function Timeline() {
-  const [zoom, setZoom] = useState(1);
-  const years = ["2024", "2025", "2026"];
+const BAR_HEIGHT = 100;
+const BAR_GAP = 12;
+const TOP_OFFSET = 80;
+
+// Pure arithmetic — no dayjs allocation per call
+const getDaysInMonth = (monthIndex, year) => {
+  // monthIndex is 0-based; Date constructor months are also 0-based,
+  // day=0 of next month gives last day of target month
+  return new Date(year, monthIndex + 1, 0).getDate();
+};
+
+// Build a cumulative-days lookup: cumulativeDays[y][m] = total days from
+// Jan 1 of minYear up to (but not including) month m of year y.
+const buildCumulativeDays = (minYear, maxYear) => {
+  const table = {}; // { year: [cum0, cum1, ..., cum12] }
+  let running = 0;
+  for (let y = minYear; y <= maxYear; y++) {
+    const row = new Array(13);
+    row[0] = running;
+    for (let m = 0; m < 12; m++) {
+      running += getDaysInMonth(m, y);
+      row[m + 1] = running;
+    }
+    table[y] = row;
+  }
+  return table;
+};
+
+// O(1) pixel lookup using precomputed cumulative table
+const dateToPixel = (date, cumTable, zoom, ALPHA) => {
+  const year = date.year();
+  const month = date.month();
+  const day = date.date();
+  const totalDays = cumTable[year][month] + day;
+  const minYear = Object.keys(cumTable)[0] | 0;
+  const monthGaps = (year - minYear) * 12 + (month + 1);
+  return ALPHA * totalDays * zoom + monthGaps;
+};
+
+// Sweep-line row assignment — O(n log n) sort + O(n·R) scan
+const assignRows = (coords) => {
+  const sorted = coords
+    .map((c, i) => ({ i, start: c.startPosition, end: c.endPosition }))
+    .sort((a, b) => a.start - b.start);
+
+  // rowEnds[r] = endPosition of the last bar placed in row r
+  const rowEnds = [];
+
+  sorted.forEach(({ i, start, end }) => {
+    let row = -1;
+    for (let r = 0; r < rowEnds.length; r++) {
+      if (rowEnds[r] <= start) {
+        row = r;
+        break;
+      }
+    }
+    if (row === -1) {
+      row = rowEnds.length;
+      rowEnds.push(end);
+    } else {
+      rowEnds[row] = end;
+    }
+    coords[i].row = row;
+  });
+};
+
+function Timeline({
+  showHeader = true,
+  initZoom = 1,
+  ALPHA = 1.5,
+  showMinimize = false,
+  showStartAndEnd = false,
+}) {
+  const { portfolioId } = useParams();
+  const [zoom, setZoom] = useState(initZoom);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollRef = useRef(null);
 
   const timelineData = [
     {
-      title: "NITC",
+      title: "NIT Calicut",
       description: "Computer Science Engineering",
-      startTime: 1590969600, // June 1, 2020
-      endTime: 1717113600, // May 31, 2024
+      startTime: 1607990400, // December 15, 2020
+      endTime: 1715299200, // May 10, 2024
     },
     {
       title: "Freelancing",
-      description: "Independent Software Development",
-      startTime: 1709251200, // March 1, 2024
-      endTime: 1735603200, // December 31, 2024
+      description: "Upwork contract",
+      startTime: 1709596800, // March 5, 2024
+      endTime: 1734912000, // December 23, 2024
     },
     {
-      title: "AESL",
+      title: "Aakash Educational Services Limited (AESL)",
       description: "Software Engineer",
-      startTime: 1717200000, // June 1, 2024
-      endTime: 1738281600, // January 31, 2025 (present approximation)
+      startTime: 1723075200, // August 8, 2024
+      endTime: null, // February 20, 2026
     },
+    // Edge case: zero-duration (same start & end) — should render with min width
+    // {
+    //   title: "Conference Talk",
+    //   description: "One-day event",
+    //   startTime: 1700006400, // November 15, 2023
+    //   endTime: 1700006400, // November 15, 2023
+    // },
+    // // Edge case: inverted timestamps — should swap and render correctly
+    // {
+    //   title: "Inverted Entry",
+    //   description: "endTime < startTime",
+    //   startTime: 1734912000, // December 23, 2024
+    //   endTime: 1709596800, // March 5, 2024
+    // },
+    // // Edge case: starts exactly when NIT ends — boundary adjacency, should reuse NIT's row
+    // {
+    //   title: "Post-College Project",
+    //   description: "Exact boundary, no overlap",
+    //   startTime: 1715299200, // May 10, 2024
+    //   endTime: 1719792000, // July 1, 2024
+    // },
+    // // Edge case: overlaps with both Freelancing AND AESL — forces row 2+
+    // {
+    //   title: "Side Hustle",
+    //   description: "Triple overlap test",
+    //   startTime: 1727740800, // October 1, 2024
+    //   endTime: 1735689600, // January 1, 2025
+    // },
+    // // Edge case: short 1-week item spanning leap year Feb 29, 2024
+    // {
+    //   title: "Leap Year Sprint",
+    //   description: "Feb 26 – Mar 3, 2024",
+    //   startTime: 1708905600, // February 26, 2024
+    //   endTime: 1709424000, // March 3, 2024
+    // },
   ];
 
+  const { years, minYear, coOrdinates, maxRow } = useMemo(() => {
+    if (!timelineData.length)
+      return { years: [], minYear: 0, coOrdinates: [], maxRow: 0 };
+
+    const now = dayjs().unix();
+
+    const minY = Math.min(
+      ...timelineData.map((d) => dayjs(d.startTime * 1000).year()),
+    );
+    const maxY = Math.max(
+      ...timelineData.map((d) => dayjs(d.endTime || now * 1000).year()),
+    );
+    const yrs = Array.from({ length: maxY - minY + 1 }, (_, i) => minY + i);
+
+    // Precompute cumulative days table — makes dateToPixel O(1)
+    const cumTable = buildCumulativeDays(minY, maxY);
+
+    const coords = timelineData.map((item) => {
+      // Guard: swap if inverted
+      const startTs = Math.min(item.startTime, item.endTime || now);
+      const endTs = Math.max(item.startTime, item.endTime || now);
+      const start = dayjs(startTs * 1000);
+      const end = dayjs(endTs * 1000);
+
+      const startPx = dateToPixel(start, cumTable, zoom, ALPHA);
+      let endPx = dateToPixel(end, cumTable, zoom, ALPHA);
+      // Guard: minimum 2px width for zero-duration events
+      if (endPx <= startPx) endPx = startPx + 2;
+
+      return {
+        startPosition: startPx,
+        endPosition: endPx,
+        // Pre-compute formatted string — avoids dayjs calls in JSX
+        formattedRange: `${start.format("MMM YYYY")} - ${end.format("MMM YYYY")}`,
+        row: 0,
+      };
+    });
+
+    assignRows(coords);
+
+    const maxR = coords.reduce((max, c) => Math.max(max, c.row), 0);
+    return { years: yrs, minYear: minY, coOrdinates: coords, maxRow: maxR };
+  }, [zoom]); // timelineData is static — add to deps when it becomes dynamic
+
+  // Indices sorted by startPosition — defines prev/next navigation order
+  const sortedIndices = useMemo(
+    () =>
+      coOrdinates
+        .map((_, i) => i)
+        .sort(
+          (a, b) => coOrdinates[a].startPosition - coOrdinates[b].startPosition,
+        ),
+    [coOrdinates],
+  );
+
+  // Grow separators to fit additional bar rows
+  // ~28px from separator top to first bar, then rows, then 20px bottom padding
+  const separatorHeight = 20 + (maxRow + 1) * (BAR_HEIGHT + BAR_GAP);
+
   const handleZoom = (amount) => {
-    // Max 2, Min 0.5
-    setZoom((prev) => Math.max(0.5, Math.min(2, prev + amount)));
+    setZoom((prev) => Math.max(1 / ALPHA, Math.min(2, prev + amount)));
   };
+
+  const scrollToItem = (index) => {
+    const el = scrollRef.current;
+    if (!el || !sortedIndices.length) return;
+    const itemIndex = sortedIndices[index];
+    el.scrollTo({
+      left: coOrdinates[itemIndex].startPosition,
+      behavior: "smooth",
+    });
+  };
+
+  const handleScroll = (type, index = 0) => {
+    if (!sortedIndices.length) return;
+    let newIndex = currentIndex;
+    switch (type) {
+      case "prev":
+        newIndex = Math.max(0, currentIndex - 1);
+        break;
+      case "next":
+        newIndex = Math.min(sortedIndices.length - 1, currentIndex + 1);
+        break;
+      case "start":
+        newIndex = 0;
+        break;
+      case "end":
+        newIndex = sortedIndices.length - 1;
+        break;
+      case "custom":
+        newIndex = index;
+        break;
+      default:
+        return;
+    }
+    setCurrentIndex(newIndex);
+    scrollToItem(newIndex);
+  };
+
+  // Throttled + binary-search scroll sync
+  const scrollTimerRef = useRef(null);
+  const handleManualScroll = useCallback(() => {
+    if (scrollTimerRef.current) return;
+    scrollTimerRef.current = setTimeout(() => {
+      scrollTimerRef.current = null;
+      const el = scrollRef.current;
+      if (!el || !sortedIndices.length) return;
+      const target = el.scrollLeft;
+
+      // Binary search: find insertion point in sorted startPositions
+      let lo = 0;
+      let hi = sortedIndices.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (coOrdinates[sortedIndices[mid]].startPosition < target)
+          lo = mid + 1;
+        else hi = mid;
+      }
+      // lo is the first item >= target; compare with lo-1 to find closest
+      if (lo > 0) {
+        const distLo = Math.abs(
+          coOrdinates[sortedIndices[lo]].startPosition - target,
+        );
+        const distPrev = Math.abs(
+          coOrdinates[sortedIndices[lo - 1]].startPosition - target,
+        );
+        if (distPrev < distLo) lo--;
+      }
+      setCurrentIndex(lo);
+    }, 100);
+  }, [coOrdinates, sortedIndices]);
+
+  useEffect(() => {
+    handleScroll("custom", 0);
+  }, [coOrdinates?.length]);
+
+  if (!timelineData.length) return null;
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-xl font-medium">Timeline</div>
-      <div className="overflow-x-auto flex no-scrollbar px-4">
+      {showHeader && (
+        <div className="text-2xl font-medium">
+          <span className="text-4xl font-bold">T</span>imeline
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        onScroll={handleManualScroll}
+        className="relative overflow-x-auto flex no-scrollbar"
+      >
         {years.map((year, index) => (
           <div key={year} className="flex mt-4">
             <div
-              className="h-full w-px"
+              className="w-px"
               style={{
+                height: "100%",
                 backgroundImage:
                   "repeating-linear-gradient(to bottom, #9CA3AF 0, #9CA3AF 6px, transparent 6px, transparent 12px)",
               }}
             />
             <div className="relative flex flex-col gap-2 w-max">
-              <div className="text-center text-sm text-gray-500 font-medium">
+              <div className="px-1 text-gray-500 font-medium sticky left-0 z-10 bg-gray-50 w-fit">
                 {year}
               </div>
               <div className="flex pt-2">
-                {MONTHS.map(({ name, days }, index) => (
-                  <div
-                    key={name}
-                    id={`${name}-${year}`}
-                    className="relative flex flex-col items-center gap-2"
-                    style={{
-                      // 2 for extra spacing between months
-                      marginRight: 2 * days * zoom,
-                      transition: "margin-right 0.3s ease",
-                    }}
-                  >
-                    <div className="absolute top-0 left-1 text-xs font-medium leading-none text-gray-500">
-                      {name}
+                {MONTH_NAMES.map((name, monthIndex) => {
+                  const days = getDaysInMonth(monthIndex, year);
+                  return (
+                    <div
+                      key={name}
+                      id={`${name}-${year}`}
+                      className="relative flex flex-col items-center gap-2"
+                      style={{
+                        marginRight: ALPHA * days * zoom,
+                        transition: "margin-right 0.3s ease",
+                      }}
+                    >
+                      <div className="absolute top-0 left-1 text-xs font-medium leading-none text-gray-500">
+                        {name}
+                      </div>
+                      {monthIndex !== 0 && (
+                        <div
+                          className="w-px bg-gray-300"
+                          style={{ height: separatorHeight }}
+                        />
+                      )}
                     </div>
-                    {index !== 0 && (
-                      <div className="w-px h-52 bg-gray-300"></div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             {index === years.length - 1 && (
               <div
-                className="h-full w-px"
+                className="w-px"
                 style={{
+                  height: "100%",
                   backgroundImage:
                     "repeating-linear-gradient(to bottom, #9CA3AF 0, #9CA3AF 6px, transparent 6px, transparent 12px)",
                 }}
@@ -134,20 +365,101 @@ function Timeline() {
             )}
           </div>
         ))}
+        <div className="max-h-[200px] overflow-y-auto">
+          {coOrdinates.map((coord, index) => (
+            <div
+              key={timelineData[index].title}
+              className="absolute bg-gray-100 overflow-x-clip border border-gray-300"
+              style={{
+                top: `${TOP_OFFSET + coord.row * (BAR_HEIGHT + BAR_GAP)}px`,
+                left: `${coord.startPosition}px`,
+                width: `${coord.endPosition - coord.startPosition}px`,
+                height: `${BAR_HEIGHT}px`,
+                transition: "all 0.3s ease",
+                ...(!timelineData[index].endTime && { borderRight: "none" }),
+              }}
+            >
+              <div className="flex flex-col h-full sticky p-3 left-0 w-fit">
+                <div className="font-bold text-gray-700 truncate line-clamp-1">
+                  {timelineData[index].title}
+                </div>
+                <div className="text-sm font-medium text-gray-500 truncate line-clamp-1">
+                  {timelineData[index].description}
+                </div>
+                <div className="text-xs font-medium text-gray-500 mt-auto">
+                  {coord.formattedRange}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="flex gap-2">
-        <div
-          className="p-2 cursor-pointer text-gray-500 hover:text-black"
-          onClick={() => handleZoom(-0.2)}
-        >
-          <ZoomOut size={20} />
+      <div className="flex items-center justify-between select-none">
+        <div className="flex">
+          <div
+            className="p-2 cursor-pointer text-gray-500 hover:text-black"
+            onClick={() => handleZoom(-0.2)}
+          >
+            <ZoomOut size={18} />
+          </div>
+          <div
+            className="p-2 cursor-pointer text-gray-500 hover:text-black"
+            onClick={() => handleZoom(0.2)}
+          >
+            <ZoomIn size={18} />
+          </div>
         </div>
-        <div
-          className="p-2 cursor-pointer text-gray-500 hover:text-black"
-          onClick={() => handleZoom(0.2)}
-        >
-          <ZoomIn size={20} />
+        <div className="flex font-medium text-sm">
+          {showStartAndEnd && (
+            <div
+              className="flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black"
+              onClick={() => handleScroll("start")}
+            >
+              <ChevronsLeft size={16} className="mt-0.5" /> start
+            </div>
+          )}
+          <div
+            className="flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black"
+            onClick={() => handleScroll("prev")}
+          >
+            <ChevronLeft size={16} className="mt-0.5" /> prev
+          </div>
+          <div
+            className={`flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black ${showStartAndEnd ? "ml-10" : "ml-4"}`}
+            onClick={() => handleScroll("next")}
+          >
+            next <ChevronLeft size={16} className="mt-0.5 rotate-180" />
+          </div>
+          {showStartAndEnd && (
+            <div
+              className="flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black"
+              onClick={() => handleScroll("end")}
+            >
+              <ChevronsLeft size={16} className="mt-0.5 rotate-180" /> end
+            </div>
+          )}
         </div>
+        {showMinimize ? (
+          <Link
+            href={`/portfolio/view/${portfolioId}/about`}
+            className="flex font-medium gap-2"
+          >
+            <Minimize
+              className="cursor-pointer text-gray-500 hover:text-black"
+              size={18}
+            />
+          </Link>
+        ) : (
+          <Link
+            href={`/portfolio/view/${portfolioId}/about/timeline`}
+            className="flex font-medium gap-2"
+          >
+            <Maximize
+              className="cursor-pointer text-gray-500 hover:text-black"
+              size={18}
+            />
+          </Link>
+        )}
       </div>
     </div>
   );
