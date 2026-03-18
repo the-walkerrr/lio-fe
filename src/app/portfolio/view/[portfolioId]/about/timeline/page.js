@@ -1,10 +1,14 @@
+"use client";
 import Timeline from "@/components/PortfolioView/Timeline";
+import { useSearchParams } from "next/navigation";
 
 function TimelineLandingPage() {
+  const searchParams = useSearchParams();
+  const view = searchParams.get("view") || "default";
+  console.log(view);
   return (
-    <div className="flex flex-col gap-2 mt-10 p-4">
-      <div className="text-3xl font-bold">Timeline</div>
-      <Timeline showHeader={false} showMinimize showStartAndEnd />
+    <div className="mt-6 p-4">
+      <Timeline showMinimize showStartAndEnd view={view} />
     </div>
   );
 }

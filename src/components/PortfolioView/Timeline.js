@@ -6,12 +6,14 @@ import {
   ChevronsLeft,
   Maximize,
   Minimize,
+  Rows3,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import TimelineListViewIcon from "@/icons/TimelineListViewIcon";
 
 const MONTH_NAMES = [
   "Jan",
@@ -95,11 +97,11 @@ const assignRows = (coords) => {
 };
 
 function Timeline({
-  showHeader = true,
   initZoom = 1,
   ALPHA = 1.5,
   showMinimize = false,
   showStartAndEnd = false,
+  view = "default",
 }) {
   const { portfolioId } = useParams();
   const [zoom, setZoom] = useState(initZoom);
@@ -302,11 +304,45 @@ function Timeline({
 
   return (
     <div className="flex flex-col gap-2">
-      {showHeader && (
+      {/* {showHeader && ( */}
+      <div className="flex items-end justify-between">
         <div className="text-2xl font-medium">
           <span className="text-4xl font-bold">T</span>imeline
         </div>
-      )}
+        <div className="flex items-center gap-4">
+          <Link
+            href={{
+              pathname: `/portfolio/view/${portfolioId}/about/timeline`,
+              query: { view: "list" },
+            }}
+            className="flex items-center gap-1 text-gray-500 hover:text-black cursor-pointer"
+          >
+            <TimelineListViewIcon size={26} />
+          </Link>
+          {showMinimize ? (
+            <Link
+              href={`/portfolio/view/${portfolioId}/about`}
+              className="flex font-medium gap-2"
+            >
+              <Minimize
+                className="cursor-pointer text-gray-500 hover:text-black"
+                size={18}
+              />
+            </Link>
+          ) : (
+            <Link
+              href={`/portfolio/view/${portfolioId}/about/timeline`}
+              className="flex font-medium gap-2"
+            >
+              <Maximize
+                className="cursor-pointer text-gray-500 hover:text-black"
+                size={18}
+              />
+            </Link>
+          )}
+        </div>
+      </div>
+      {/* )} */}
       <div
         ref={scrollRef}
         onScroll={handleManualScroll}
@@ -394,72 +430,51 @@ function Timeline({
           ))}
         </div>
       </div>
-      <div className="flex items-center justify-between select-none">
-        <div className="flex">
-          <div
-            className="p-2 cursor-pointer text-gray-500 hover:text-black"
-            onClick={() => handleZoom(-0.2)}
-          >
-            <ZoomOut size={18} />
-          </div>
-          <div
-            className="p-2 cursor-pointer text-gray-500 hover:text-black"
-            onClick={() => handleZoom(0.2)}
-          >
-            <ZoomIn size={18} />
-          </div>
-        </div>
+      <div className="flex mt-2 items-center justify-between select-none">
         <div className="flex font-medium text-sm">
           {showStartAndEnd && (
             <div
-              className="flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black"
+              className="flex gap-0.5 items-center cursor-pointer text-gray-500 hover:text-black mr-2"
               onClick={() => handleScroll("start")}
             >
               <ChevronsLeft size={16} className="mt-0.5" /> start
             </div>
           )}
           <div
-            className="flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black"
+            className="flex gap-0.5 items-center cursor-pointer text-gray-500 hover:text-black"
             onClick={() => handleScroll("prev")}
           >
             <ChevronLeft size={16} className="mt-0.5" /> prev
           </div>
           <div
-            className={`flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black ${showStartAndEnd ? "ml-10" : "ml-4"}`}
+            className="flex gap-0.5 items-center cursor-pointer text-gray-500 hover:text-black ml-6"
             onClick={() => handleScroll("next")}
           >
             next <ChevronLeft size={16} className="mt-0.5 rotate-180" />
           </div>
           {showStartAndEnd && (
             <div
-              className="flex gap-0.5 items-center p-2 cursor-pointer text-gray-500 hover:text-black"
+              className="flex gap-0.5 items-center cursor-pointer text-gray-500 hover:text-black ml-2"
               onClick={() => handleScroll("end")}
             >
-              <ChevronsLeft size={16} className="mt-0.5 rotate-180" /> end
+              end <ChevronsLeft size={16} className="mt-0.5 rotate-180" />
             </div>
           )}
         </div>
-        {showMinimize ? (
-          <Link
-            href={`/portfolio/view/${portfolioId}/about`}
-            className="flex font-medium gap-2"
+        <div className="flex gap-4">
+          <div
+            className="cursor-pointer text-gray-500 hover:text-black"
+            onClick={() => handleZoom(-0.2)}
           >
-            <Minimize
-              className="cursor-pointer text-gray-500 hover:text-black"
-              size={18}
-            />
-          </Link>
-        ) : (
-          <Link
-            href={`/portfolio/view/${portfolioId}/about/timeline`}
-            className="flex font-medium gap-2"
+            <ZoomOut size={18} />
+          </div>
+          <div
+            className="cursor-pointer text-gray-500 hover:text-black"
+            onClick={() => handleZoom(0.2)}
           >
-            <Maximize
-              className="cursor-pointer text-gray-500 hover:text-black"
-              size={18}
-            />
-          </Link>
-        )}
+            <ZoomIn size={18} />
+          </div>
+        </div>
       </div>
     </div>
   );
