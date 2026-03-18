@@ -302,7 +302,11 @@ function Timeline({
 
   return (
     <div className="flex flex-col gap-2">
-      {showHeader && <div className="text-xl font-medium">Timeline</div>}
+      {showHeader && (
+        <div className="text-2xl font-medium">
+          <span className="text-4xl font-bold">T</span>imeline
+        </div>
+      )}
       <div
         ref={scrollRef}
         onScroll={handleManualScroll}
