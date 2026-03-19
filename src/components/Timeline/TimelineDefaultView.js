@@ -1,19 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronsLeft,
-  Maximize,
-  Minimize,
-  Rows3,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { ChevronLeft, ChevronsLeft, ZoomIn, ZoomOut } from "lucide-react";
 import dayjs from "dayjs";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import TimelineListViewIcon from "@/icons/TimelineListViewIcon";
 
 const MONTH_NAMES = [
   "Jan",
@@ -36,15 +25,13 @@ const TOP_OFFSET = 80;
 
 // Pure arithmetic — no dayjs allocation per call
 const getDaysInMonth = (monthIndex, year) => {
-  // monthIndex is 0-based; Date constructor months are also 0-based,
-  // day=0 of next month gives last day of target month
   return new Date(year, monthIndex + 1, 0).getDate();
 };
 
 // Build a cumulative-days lookup: cumulativeDays[y][m] = total days from
 // Jan 1 of minYear up to (but not including) month m of year y.
 const buildCumulativeDays = (minYear, maxYear) => {
-  const table = {}; // { year: [cum0, cum1, ..., cum12] }
+  const table = {};
   let running = 0;
   for (let y = minYear; y <= maxYear; y++) {
     const row = new Array(13);
@@ -75,7 +62,6 @@ const assignRows = (coords) => {
     .map((c, i) => ({ i, start: c.startPosition, end: c.endPosition }))
     .sort((a, b) => a.start - b.start);
 
-  // rowEnds[r] = endPosition of the last bar placed in row r
   const rowEnds = [];
 
   sorted.forEach(({ i, start, end }) => {
@@ -96,77 +82,18 @@ const assignRows = (coords) => {
   });
 };
 
-function Timeline({
+function TimelineDefaultView({
+  timelineData = [],
   initZoom = 1,
   ALPHA = 1.5,
-  showMinimize = false,
   showStartAndEnd = false,
-  view = "default",
 }) {
-  const { portfolioId } = useParams();
   const [zoom, setZoom] = useState(initZoom);
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef(null);
 
-  const timelineData = [
-    {
-      title: "NIT Calicut",
-      description: "Computer Science Engineering",
-      startTime: 1607990400, // December 15, 2020
-      endTime: 1715299200, // May 10, 2024
-    },
-    {
-      title: "Freelancing",
-      description: "Upwork contract",
-      startTime: 1709596800, // March 5, 2024
-      endTime: 1734912000, // December 23, 2024
-    },
-    {
-      title: "Aakash Educational Services Limited (AESL)",
-      description: "Software Engineer",
-      startTime: 1723075200, // August 8, 2024
-      endTime: null, // February 20, 2026
-    },
-    // Edge case: zero-duration (same start & end) — should render with min width
-    // {
-    //   title: "Conference Talk",
-    //   description: "One-day event",
-    //   startTime: 1700006400, // November 15, 2023
-    //   endTime: 1700006400, // November 15, 2023
-    // },
-    // // Edge case: inverted timestamps — should swap and render correctly
-    // {
-    //   title: "Inverted Entry",
-    //   description: "endTime < startTime",
-    //   startTime: 1734912000, // December 23, 2024
-    //   endTime: 1709596800, // March 5, 2024
-    // },
-    // // Edge case: starts exactly when NIT ends — boundary adjacency, should reuse NIT's row
-    // {
-    //   title: "Post-College Project",
-    //   description: "Exact boundary, no overlap",
-    //   startTime: 1715299200, // May 10, 2024
-    //   endTime: 1719792000, // July 1, 2024
-    // },
-    // // Edge case: overlaps with both Freelancing AND AESL — forces row 2+
-    // {
-    //   title: "Side Hustle",
-    //   description: "Triple overlap test",
-    //   startTime: 1727740800, // October 1, 2024
-    //   endTime: 1735689600, // January 1, 2025
-    // },
-    // // Edge case: short 1-week item spanning leap year Feb 29, 2024
-    // {
-    //   title: "Leap Year Sprint",
-    //   description: "Feb 26 – Mar 3, 2024",
-    //   startTime: 1708905600, // February 26, 2024
-    //   endTime: 1709424000, // March 3, 2024
-    // },
-  ];
-
-  const { years, minYear, coOrdinates, maxRow } = useMemo(() => {
-    if (!timelineData.length)
-      return { years: [], minYear: 0, coOrdinates: [], maxRow: 0 };
+  const { years, coOrdinates, maxRow } = useMemo(() => {
+    if (!timelineData.length) return { years: [], coOrdinates: [], maxRow: 0 };
 
     const now = dayjs().unix();
 
@@ -178,11 +105,9 @@ function Timeline({
     );
     const yrs = Array.from({ length: maxY - minY + 1 }, (_, i) => minY + i);
 
-    // Precompute cumulative days table — makes dateToPixel O(1)
     const cumTable = buildCumulativeDays(minY, maxY);
 
     const coords = timelineData.map((item) => {
-      // Guard: swap if inverted
       const startTs = Math.min(item.startTime, item.endTime || now);
       const endTs = Math.max(item.startTime, item.endTime || now);
       const start = dayjs(startTs * 1000);
@@ -190,13 +115,11 @@ function Timeline({
 
       const startPx = dateToPixel(start, cumTable, zoom, ALPHA);
       let endPx = dateToPixel(end, cumTable, zoom, ALPHA);
-      // Guard: minimum 2px width for zero-duration events
       if (endPx <= startPx) endPx = startPx + 2;
 
       return {
         startPosition: startPx,
         endPosition: endPx,
-        // Pre-compute formatted string — avoids dayjs calls in JSX
         formattedRange: `${start.format("MMM YYYY")} - ${end.format("MMM YYYY")}`,
         row: 0,
       };
@@ -205,10 +128,9 @@ function Timeline({
     assignRows(coords);
 
     const maxR = coords.reduce((max, c) => Math.max(max, c.row), 0);
-    return { years: yrs, minYear: minY, coOrdinates: coords, maxRow: maxR };
-  }, [zoom]); // timelineData is static — add to deps when it becomes dynamic
+    return { years: yrs, coOrdinates: coords, maxRow: maxR };
+  }, [zoom]);
 
-  // Indices sorted by startPosition — defines prev/next navigation order
   const sortedIndices = useMemo(
     () =>
       coOrdinates
@@ -219,8 +141,6 @@ function Timeline({
     [coOrdinates],
   );
 
-  // Grow separators to fit additional bar rows
-  // ~28px from separator top to first bar, then rows, then 20px bottom padding
   const separatorHeight = 20 + (maxRow + 1) * (BAR_HEIGHT + BAR_GAP);
 
   const handleZoom = (amount) => {
@@ -263,7 +183,6 @@ function Timeline({
     scrollToItem(newIndex);
   };
 
-  // Throttled + binary-search scroll sync
   const scrollTimerRef = useRef(null);
   const handleManualScroll = useCallback(() => {
     if (scrollTimerRef.current) return;
@@ -273,7 +192,6 @@ function Timeline({
       if (!el || !sortedIndices.length) return;
       const target = el.scrollLeft;
 
-      // Binary search: find insertion point in sorted startPositions
       let lo = 0;
       let hi = sortedIndices.length - 1;
       while (lo < hi) {
@@ -282,7 +200,6 @@ function Timeline({
           lo = mid + 1;
         else hi = mid;
       }
-      // lo is the first item >= target; compare with lo-1 to find closest
       if (lo > 0) {
         const distLo = Math.abs(
           coOrdinates[sortedIndices[lo]].startPosition - target,
@@ -303,46 +220,7 @@ function Timeline({
   if (!timelineData.length) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* {showHeader && ( */}
-      <div className="flex items-end justify-between">
-        <div className="text-2xl font-medium">
-          <span className="text-4xl font-bold">T</span>imeline
-        </div>
-        <div className="flex items-center gap-4">
-          <Link
-            href={{
-              pathname: `/portfolio/view/${portfolioId}/about/timeline`,
-              query: { view: "list" },
-            }}
-            className="flex items-center gap-1 text-gray-500 hover:text-black cursor-pointer"
-          >
-            <TimelineListViewIcon size={26} />
-          </Link>
-          {showMinimize ? (
-            <Link
-              href={`/portfolio/view/${portfolioId}/about`}
-              className="flex font-medium gap-2"
-            >
-              <Minimize
-                className="cursor-pointer text-gray-500 hover:text-black"
-                size={18}
-              />
-            </Link>
-          ) : (
-            <Link
-              href={`/portfolio/view/${portfolioId}/about/timeline`}
-              className="flex font-medium gap-2"
-            >
-              <Maximize
-                className="cursor-pointer text-gray-500 hover:text-black"
-                size={18}
-              />
-            </Link>
-          )}
-        </div>
-      </div>
-      {/* )} */}
+    <>
       <div
         ref={scrollRef}
         onScroll={handleManualScroll}
@@ -476,8 +354,8 @@ function Timeline({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-export default Timeline;
+export default TimelineDefaultView;
