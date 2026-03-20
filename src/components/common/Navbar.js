@@ -1,10 +1,9 @@
 "use client";
-
 import { memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
-import { Home, Search, Bookmark, Settings, ChevronLeft } from "lucide-react";
+import { Home, Search, Bookmark, Settings, PanelLeftClose } from "lucide-react";
 import { useDesktopNavStore } from "@/stores/useDesktopNavStore";
 
 const menuItems = [
@@ -88,13 +87,11 @@ export default function Navbar() {
           aria-label={isDesktopNavOpen ? "Hide sidebar" : "Show sidebar"}
           className={`flex justify-center pt-2 transition-all duration-300 hover:text-gray-800 cursor-pointer ${isDesktopNavOpen ? "justify-end pr-2" : ""}`}
         >
-          <ChevronLeft
-            size={30}
+          <PanelLeftClose
+            size={22}
             strokeWidth={1.5}
-            className={`transition-transform duration-300 ease-in-out ${
-              isDesktopNavOpen
-                ? "rotate-0 text-gray-400 hover:text-gray-600"
-                : "rotate-180 text-gray-600"
+            className={`transition-transform duration-300 text-gray-400 hover:text-gray-600 ease-in-out ${
+              isDesktopNavOpen ? "rotate-0" : "rotate-180"
             }`}
           />
         </button>
