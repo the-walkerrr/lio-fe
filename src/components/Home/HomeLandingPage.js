@@ -80,7 +80,7 @@ export default function HomeLandingPage() {
             </div>
             <div className="flex items-center justify-end gap-4 text-sm border-t border-gray-200 pt-2">
               <Link
-                href={`/portfolio/view/${item?.id}/about`}
+                href={`/view/${item?.id}/about`}
                 className="flex items-center gap-1 text-gray-700 hover:text-gray-900 border-b border-transparent hover:border-gray-900 cursor-pointer"
               >
                 <Eye size={18} strokeWidth={1.5} />
@@ -88,7 +88,7 @@ export default function HomeLandingPage() {
               </Link>
               <div className="h-full w-px bg-gray-200"></div>
               <Link
-                href={`/portfolio/edit/${item?.id}`}
+                href={`/edit/${item?.id}`}
                 className="flex items-center gap-1 text-gray-700 hover:text-gray-900 border-b border-transparent hover:border-gray-900 cursor-pointer"
               >
                 <Edit2Icon size={14} strokeWidth={1.5} />

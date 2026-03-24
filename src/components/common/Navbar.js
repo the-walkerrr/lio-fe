@@ -107,10 +107,7 @@ export default function Navbar() {
           <div className="w-44">
             <h1 className="text-4xl leading-none font-semibold text-gray-800 tracking-tight">
               LIO
-              {/* <span className="text-gray-500 font-medium text-xl">.</span> */}
-              {/* <span className="text-sm text-gray-400 font-medium">DEV</span> */}
             </h1>
-            <p className="text-gray-600 text-sm">Portfolio Management</p>
           </div>
         </div>
 

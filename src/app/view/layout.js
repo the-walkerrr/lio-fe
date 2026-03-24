@@ -16,13 +16,10 @@ export default function PortfolioViewLayout({ children }) {
           </div>
         </div>
         <div className="flex ml-auto gap-10 mr-5">
-          <Link
-            href="/portfolio/view/1/about"
-            className="font-semibold text-xl"
-          >
+          <Link href="/view/1/about" className="font-semibold text-xl">
             About
           </Link>
-          <Link href="/portfolio/view/1/work" className="text-gray-500 text-xl">
+          <Link href="/view/1/work" className="text-gray-500 text-xl">
             Work
           </Link>
         </div>

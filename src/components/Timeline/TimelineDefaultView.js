@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { ChevronLeft, ChevronsLeft, ZoomIn, ZoomOut } from "lucide-react";
 import dayjs from "dayjs";
+import Link from "next/link";
 
 const MONTH_NAMES = [
   "Jan",
@@ -83,6 +84,7 @@ const assignRows = (coords) => {
 };
 
 function TimelineDefaultView({
+  portfolioId = "",
   timelineData = [],
   initZoom = 1,
   ALPHA = 1.5,
@@ -279,9 +281,11 @@ function TimelineDefaultView({
             )}
           </div>
         ))}
+        {/* cards */}
         <div className="max-h-[200px] overflow-y-auto">
           {coOrdinates.map((coord, index) => (
-            <div
+            <Link
+              href={`/view/${portfolioId}/post/${timelineData[index].postId}`}
               key={timelineData[index].title}
               className="absolute bg-gray-100 overflow-x-clip border border-gray-300"
               style={{
@@ -304,7 +308,7 @@ function TimelineDefaultView({
                   {coord.formattedRange}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

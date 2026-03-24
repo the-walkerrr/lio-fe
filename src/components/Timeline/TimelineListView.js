@@ -1,6 +1,11 @@
 import dayjs from "dayjs";
+import Link from "next/link";
 
-function TimelineListView({ timelineData = [], order = "desc" }) {
+function TimelineListView({
+  portfolioId = "",
+  timelineData = [],
+  order = "desc",
+}) {
   const now = dayjs().unix();
 
   return (
@@ -12,7 +17,8 @@ function TimelineListView({ timelineData = [], order = "desc" }) {
             : a.startTime - b.startTime,
         )
         .map((item, index) => (
-          <div
+          <Link
+            href={`/view/${portfolioId}/post/${item?.id}`}
             key={index}
             className="flex items-center justify-center gap-4 w-full"
           >
@@ -33,7 +39,7 @@ function TimelineListView({ timelineData = [], order = "desc" }) {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
     </div>
   );

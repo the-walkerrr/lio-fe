@@ -5,18 +5,21 @@ import { TimelineDefaultView, TimelineListView } from "@/components/Timeline";
 
 const timelineData = [
   {
+    postId: 1,
     title: "NIT Calicut",
     description: "Computer Science Engineering",
     startTime: 1607990400,
     endTime: 1715299200,
   },
   {
+    postId: 2,
     title: "Freelancing",
     description: "Upwork contract",
     startTime: 1709596800,
     endTime: 1734912000,
   },
   {
+    postId: 3,
     title: "Aakash Educational Services Limited (AESL)",
     description: "Software Engineer",
     startTime: 1723075200,
@@ -42,7 +45,7 @@ async function Timeline({ params, searchParams }) {
   return (
     <div className="flex flex-col gap-2 mt-6 mx-4">
       <Link
-        href={`/portfolio/view/${portfolioId}/about`}
+        href={`/view/${portfolioId}/about`}
         className="w-fit text-gray-400 hover:text-black cursor-pointer"
       >
         <MoveLeft size={35} />
